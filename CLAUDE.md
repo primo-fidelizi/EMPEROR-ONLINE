@@ -130,7 +130,7 @@ saquear → conquistar territórios → crescer com o sindicato → ranking da t
 
 | Camada | Escolha | Observação |
 |---|---|---|
-| Código | **GitHub** (`alloneprimo-tech/NAZA`) | Issues como backlog |
+| Código | **GitHub** (`primo-fidelizi/EMPEROR-ONLINE`) | Issues como backlog |
 | Frontend + API leve | **Next.js (App Router) + TypeScript** na **Vercel (Hobby)** | O plano Hobby é para uso **não comercial**. Se um dia houver monetização, reavaliar |
 | Banco, Auth, Realtime | **Supabase (Free)** | Postgres + Auth + Realtime + `pg_cron` |
 | Lógica do jogo | **Funções SQL/PLpgSQL no Postgres (RPC)** | O servidor é a autoridade, sempre |
@@ -372,7 +372,7 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
 
 ## 11. Decisões em aberto (decidir junto com o usuário)
 
-- Nome final do jogo e dos bairros (o repositório se chama `NAZA`; o jogo segue como
+- Nome final do jogo e dos bairros (o repositório se chama `EMPEROR-ONLINE`; o jogo segue como
   "Costa Neon" até decidirmos).
 - Duração padrão da temporada (7 ou 14 dias) e velocidade.
 - Tamanho máximo do sindicato.
