@@ -43,3 +43,30 @@ produção e divide o tempo das obras.
 | Boate: tempo       | 47 s    | ~3 min   | ~15 min  |
 | Boate: produção    | 70/h    | ~245/h   | ~1.180/h |
 | Doca: armazém      | 1.563   | ~9.300   | ~86.700  |
+
+## Crew (`unidades`)
+
+| Unidade   | Custo (C/M/I)  | Tempo | Ataque | Defesa | Carga | Min/campo | Garagem |
+| --------- | -------------- | ----- | ------ | ------ | ----- | --------- | ------- |
+| Olheiro   | 40 / 30 / 20   | 20 s  | 0      | 2      | 0     | 0,5       | 1       |
+| Segurança | 50 / 30 / 10   | 25 s  | 10     | 25     | 20    | 2         | 1       |
+| Piloto    | 80 / 40 / 30   | 40 s  | 25     | 5      | 60    | 1         | 2       |
+| Blindado  | 150 / 180 / 60 | 70 s  | 60     | 20     | 30    | 3         | 4       |
+
+- Tempo de recrutamento por unidade × quantidade × 0,95^(Garagem − 1) ÷ velocidade. Lotes em sequência, até 5.
+- Crew inicial de todo jogador: 10 Seguranças + 3 Olheiros.
+
+## Combate (`combate`)
+
+- **Viagem** = distância × min/campo da unidade **mais lenta** × 60 s ÷ velocidade. A volta leva o mesmo tempo.
+- **Poder de ataque** = Σ quantidade × ataque. **Poder de defesa** = Σ quantidade × defesa + 20 (base).
+- Quem tiver mais poder vence. O perdedor perde tudo. O vencedor perde (poder do perdedor ÷ poder do vencedor)^1,5 da crew, arredondado por unidade.
+- **Saque**: o atacante vencedor leva até a carga somada dos sobreviventes, tirando de cada recurso na mesma proporção. Na volta, o saque respeita o armazém.
+- **Espionagem**: só olheiros. Dá certo se você mandar **mais** olheiros do que o alvo tem em casa; senão, todos são pegos.
+- **Proteção de iniciante**: 48 h desde a entrada no mundo sem poder ser atacado nem espionado por outro jogador.
+- Batalhas são resolvidas **em ordem de chegada**, por um processador único (advisory lock), na ação de qualquer jogador e a cada minuto pelo `pg_cron`.
+
+## Territórios abandonados (`abandonados`)
+
+- 3 por jogador novo, a 2–6 campos de distância, com 0–4 Seguranças.
+- Nascem com os mesmos negócios e recursos iniciais de um jogador e **continuam produzindo**: dá para saquear de novo.

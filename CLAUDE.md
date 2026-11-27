@@ -200,8 +200,9 @@ Supabase
 - `build_queue(id, territory_id, tipo, nivel_alvo, inicia_em, termina_em)` (obras em sequência)
 - `territory_economy(territory_id, cash, material, influencia, atualizado_em)` — só o dono lê
 - `units(territory_id, tipo, quantidade)`
-- `recruit_queue(id, territory_id, tipo, quantidade, termina_em)`
-- `movements(id, world_id, origem_id, destino_id, tipo[ataque|apoio|retorno|espionagem], unidades jsonb, sai_em, chega_em, saque jsonb)`
+- `recruit_queue(id, territory_id, tipo, quantidade, inicia_em, termina_em)` (lotes em sequência)
+- `movements(id, world_id, dono_id, origem_id, destino_id, tipo[ataque|espionagem|retorno], unidades jsonb, sai_em, chega_em, saque jsonb)`
+  — a própria tabela é a fila de eventos de combate (índice em `chega_em, id`)
 - `reports(id, world_id, user_id, tipo, dados jsonb, lido, criado_em)` (purga após N dias)
 - `syndicates(id, world_id, nome, tag, lider_id)` e `syndicate_members`
 - `messages(id, world_id, sindicato_id, user_id, texto, criado_em)` (purga)
@@ -240,15 +241,16 @@ O Supabase Auth trabalha com e-mail. Para ter **só usuário e senha**:
 ## 6. Segurança básica (checklist obrigatório)
 
 - [x] **RLS ativado em TODAS as tabelas**, sem exceção. Política padrão: negar. (teste automático)
-- [ ] Leitura: o jogador vê o que é dele. Mapa e ranking são públicos dentro do mundo, mas
-      **tropas alheias nunca aparecem** (só via relatório de espionagem).
+- [x] Leitura: o jogador vê o que é dele. Mapa e ranking são públicos dentro do mundo, mas
+      **tropas alheias nunca aparecem** (só via relatório de espionagem). Ataque chegando aparece
+      ao defensor sem revelar a crew (testado).
 - [x] Escrita: **nenhuma política de insert/update/delete para usuários** nas tabelas de
       jogo. Só funções RPC `security definer` com `set search_path = ''` e checagem de
       `auth.uid()`.
 - [ ] A chave `service_role` **nunca** vai para o cliente nem para variável `NEXT_PUBLIC_*`.
       Ela só existe em rotas server e no GitHub Secrets.
-- [ ] Toda função RPC valida os inputs: tipos, limites, `quantidade > 0` e inteiros (evitar
-      overflow e números negativos, que são o exploit clássico).
+- [x] Toda função RPC valida os inputs: tipos, limites, `quantidade > 0` e inteiros (evitar
+      overflow e números negativos, que são o exploit clássico). Crew passa por `_validar_crew`.
 - [x] Operações de recursos são **atômicas** (uma transação, `select … for update` no
       território) para evitar gasto duplo com cliques simultâneos. Provado por teste com 8
       conexões simultâneas num Postgres real (`supabase/tests/concorrencia.test.ts`, roda no CI).
@@ -331,6 +333,9 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
   (`x between … and y between …`).
 - Territórios abandonados ("bárbaros") gerados para saque no início.
 - **Aceite:** um mapa de 500×500 navega fluido no celular.
+- **Status:** 🟡 entregue junto com a Fase 4: mapa em canvas (`/jogo/[world]/mapa`) com arrastar,
+  pinça/roda, pedaços de 40×40 via `mapa_regiao`, rotas animadas e lista acessível de alvos.
+  Abandonados: 3 por jogador novo. Falta medir a fluidez num celular real e desenhar os bairros.
 
 ### Fase 4: Crew e combate
 - Recrutamento, movimentos (ataque, apoio, espionagem, retorno), tempo de viagem por
@@ -340,6 +345,10 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
 - Conquista: o Negociador reduz a lealdade e, ao chegar a 0, o território troca de dono.
 - **Aceite:** testes cobrem ataque vencido, ataque perdido, chegadas simultâneas e
   conquista; o e2e cobre um ataque completo entre duas contas.
+- **Status:** 🟡 primeira entrega: recrutamento (Olheiro, Segurança, Piloto, Blindado), ataque e
+  espionagem com viagem, batalha determinística, saque, retorno, relatórios e alerta de ataque
+  chegando. Testes cobrem vencido, perdido, chegadas simultâneas, espionagem e proteção.
+  **Falta:** Negociador/conquista, apoio, Hacker, notificação via Realtime e o e2e.
 
 ### Fase 5: Social e temporada
 - Sindicatos (criar, convidar, sair), chat do sindicato, ranking de jogadores e sindicatos.
@@ -397,4 +406,4 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
   "Costa Neon" até decidirmos).
 - Duração padrão da temporada (7 ou 14 dias) e velocidade.
 - Tamanho máximo do sindicato.
-- Haverá proteção para iniciantes (ex.: 48h sem poder ser atacado)? Sugestão: sim.
+- ~~Proteção para iniciantes~~ **Decidido:** sim, 48 h (configurável em `combate.protecao_iniciante_h`).
