@@ -83,7 +83,9 @@ describe("entrar_no_mundo", () => {
     const t1 = await entrar(ana);
     const t2 = await entrar(ana);
     expect(t2).toBe(t1);
-    const { rows } = await db.query(`select count(*)::int as n from public.territories`);
+    const { rows } = await db.query(
+      `select count(*)::int as n from public.territories where dono_id is not null`,
+    );
     expect(rows).toEqual([{ n: 1 }]);
   });
 
@@ -96,7 +98,7 @@ describe("entrar_no_mundo", () => {
              count(distinct (x, y))::int as casas,
              max(sqrt(power(x - 250, 2) + power(y - 250, 2)))::float as maxd,
              count(*) filter (where x < 0 or y < 0 or x >= 500 or y >= 500)::int as fora
-      from public.territories`);
+      from public.territories where dono_id is not null`);
     expect(rows[0]).toMatchObject({ n: 150, casas: 150, fora: 0 });
     expect(rows[0].maxd).toBeLessThan(40);
   });
