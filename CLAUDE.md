@@ -197,7 +197,8 @@ Supabase
 - `territories(id, world_id, x, y, bairro, dono_id null, nome, lealdade)` — **sem recursos**: o mapa é
   público e recursos alheios são segredo. A Fase 2 cria uma tabela de economia legível só pelo dono.
 - `buildings(territory_id, tipo, nivel)`
-- `build_queue(id, territory_id, tipo, nivel_alvo, termina_em)`
+- `build_queue(id, territory_id, tipo, nivel_alvo, inicia_em, termina_em)` (obras em sequência)
+- `territory_economy(territory_id, cash, material, influencia, atualizado_em)` — só o dono lê
 - `units(territory_id, tipo, quantidade)`
 - `recruit_queue(id, territory_id, tipo, quantidade, termina_em)`
 - `movements(id, world_id, origem_id, destino_id, tipo[ataque|apoio|retorno|espionagem], unidades jsonb, sai_em, chega_em, saque jsonb)`
@@ -248,8 +249,9 @@ O Supabase Auth trabalha com e-mail. Para ter **só usuário e senha**:
       Ela só existe em rotas server e no GitHub Secrets.
 - [ ] Toda função RPC valida os inputs: tipos, limites, `quantidade > 0` e inteiros (evitar
       overflow e números negativos, que são o exploit clássico).
-- [ ] Operações de recursos são **atômicas** (uma transação, `select … for update` no
-      território) para evitar gasto duplo com cliques simultâneos.
+- [x] Operações de recursos são **atômicas** (uma transação, `select … for update` no
+      território) para evitar gasto duplo com cliques simultâneos. Provado por teste com 8
+      conexões simultâneas num Postgres real (`supabase/tests/concorrencia.test.ts`, roda no CI).
 - [~] Rate limit por usuário nas RPCs (via `action_log`, por exemplo no máximo 10 ações por
       segundo) e no cadastro e login (Turnstile + limite por IP do próprio Supabase Auth).
       Feito nas RPCs via `_registrar_acao`; falta ligar o Turnstile.
@@ -319,6 +321,10 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
 - Ações em lote: "subir tudo que dá".
 - **Aceite:** um teste SQL prova que não dá para gastar o que não tem, nem com chamadas
   simultâneas.
+- **Status:** ✅ código e testes prontos (aceite coberto em PGlite e em Postgres real com 8
+  conexões). RPCs: `estado_territorio`, `construir`, `subir_tudo`. `pg_cron` conclui obras vencidas
+  a cada minuto (`processar_obras_vencidas`) e purga o `action_log` diariamente. Números em
+  `docs/balanceamento.md`.
 
 ### Fase 3: Mapa
 - Grade com bairros, mapa em canvas com pan e zoom, carregando por região visível
