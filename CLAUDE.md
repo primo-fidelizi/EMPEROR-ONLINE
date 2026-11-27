@@ -194,7 +194,8 @@ Supabase
 - `profiles(id → auth.users, username unique, created_at)`
 - `worlds(id, nome, slug, status[aberto|rodando|encerrado], velocidade, tamanho_mapa, inicia_em, termina_em, config jsonb)`
 - `world_players(world_id, user_id, pontos, sindicato_id, entrou_em)`
-- `territories(id, world_id, x, y, bairro, dono_id null, nome, lealdade, recursos_base jsonb, recursos_atualizado_em)`
+- `territories(id, world_id, x, y, bairro, dono_id null, nome, lealdade)` — **sem recursos**: o mapa é
+  público e recursos alheios são segredo. A Fase 2 cria uma tabela de economia legível só pelo dono.
 - `buildings(territory_id, tipo, nivel)`
 - `build_queue(id, territory_id, tipo, nivel_alvo, termina_em)`
 - `units(territory_id, tipo, quantidade)`
@@ -214,25 +215,33 @@ Supabase
 ## 5. Autenticação simplificada (usuário + senha)
 
 O Supabase Auth trabalha com e-mail. Para ter **só usuário e senha**:
-- No cadastro, o cliente envia `username` e `senha`. Uma rota server (Next.js Route Handler)
-  valida o Turnstile e o formato do username (`^[a-z0-9_]{3,20}$`, com lista de nomes
-  proibidos) e chama `auth.signUp` com e-mail sintético `username@players.costaneon.invalid`.
+- O formulário (navegador) converte o username em e-mail sintético
+  `username@players.costaneon.invalid` e chama `auth.signUp` / `signInWithPassword` **direto do
+  navegador**, mandando o `username` em `options.data`.
+  - *Por que não por uma rota server (decisão da Fase 1):* o limite anti-abuso do Supabase Auth é
+    por IP. Passando pela Vercel, todos os jogadores sairiam do mesmo IP e seriam bloqueados juntos.
+- **A regra que vale está no banco:** o trigger `criar_perfil_novo_usuario` em `auth.users` exige
+  o formato `^[a-z0-9_]{3,20}$`, barra nomes reservados e palavrões (`username_permitido`) e
+  garante username único. `lib/conta.ts` repete as regras só para dar feedback rápido.
+- **Turnstile:** usa o CAPTCHA nativo do Supabase Auth (Authentication → Attack Protection →
+  Turnstile + chave secreta). O widget aparece quando `NEXT_PUBLIC_TURNSTILE_SITE_KEY` existe e
+  manda o `captchaToken`; quem confere é o Supabase.
 - **Desativar a confirmação de e-mail** no painel do Supabase.
-- Um trigger em `auth.users` cria o registro em `profiles` com username único.
-- Login: converter o username no e-mail sintético e chamar `signInWithPassword`.
 - Consequência aceita: **não existe "esqueci a senha" por e-mail.** Na fase 6 entra a opção
   de vincular um e-mail real para recuperação.
-- Senha com mínimo de 8 caracteres. Ativar a proteção contra senhas vazadas se estiver
-  disponível no plano.
+- Senha com mínimo de 8 caracteres (configurar também no painel). Ativar a proteção contra senhas
+  vazadas se estiver disponível no plano.
+- `proxy.ts` (o antigo middleware do Next 16) renova a sessão e manda quem não está logado de
+  `/mundos` e `/jogo` para `/login`.
 
 ---
 
 ## 6. Segurança básica (checklist obrigatório)
 
-- [ ] **RLS ativado em TODAS as tabelas**, sem exceção. Política padrão: negar.
+- [x] **RLS ativado em TODAS as tabelas**, sem exceção. Política padrão: negar. (teste automático)
 - [ ] Leitura: o jogador vê o que é dele. Mapa e ranking são públicos dentro do mundo, mas
       **tropas alheias nunca aparecem** (só via relatório de espionagem).
-- [ ] Escrita: **nenhuma política de insert/update/delete para usuários** nas tabelas de
+- [x] Escrita: **nenhuma política de insert/update/delete para usuários** nas tabelas de
       jogo. Só funções RPC `security definer` com `set search_path = ''` e checagem de
       `auth.uid()`.
 - [ ] A chave `service_role` **nunca** vai para o cliente nem para variável `NEXT_PUBLIC_*`.
@@ -241,8 +250,9 @@ O Supabase Auth trabalha com e-mail. Para ter **só usuário e senha**:
       overflow e números negativos, que são o exploit clássico).
 - [ ] Operações de recursos são **atômicas** (uma transação, `select … for update` no
       território) para evitar gasto duplo com cliques simultâneos.
-- [ ] Rate limit por usuário nas RPCs (via `action_log`, por exemplo no máximo 10 ações por
-      segundo) e no cadastro e login (Turnstile + limite por IP na rota server).
+- [~] Rate limit por usuário nas RPCs (via `action_log`, por exemplo no máximo 10 ações por
+      segundo) e no cadastro e login (Turnstile + limite por IP do próprio Supabase Auth).
+      Feito nas RPCs via `_registrar_acao`; falta ligar o Turnstile.
 - [x] Headers de segurança no Next.js: CSP, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS.
       (CSP ainda permite `'unsafe-inline'` em scripts; trocar por nonce na fase 6.)
 - [ ] Sanitizar textos de usuário (nomes, chat). Renderizar como texto, nunca como HTML.
@@ -267,15 +277,16 @@ O Supabase Auth trabalha com e-mail. Para ter **só usuário e senha**:
 /supabase
   /migrations        SQL versionado (único jeito de mudar o banco)
   /seed.sql          config do jogo + mundo de teste
-  /tests             testes SQL das RPCs
+  /tests             testes SQL das RPCs (Vitest + PGlite: Postgres real em memória, roda no CI)
 /e2e                 Playwright
 /docs                decisões (ADR curtas), balanceamento
-.github/workflows    ci.yml, keepalive.yml, backup.yml
+.github/workflows    ci.yml, migrations.yml (db push em produção), keepalive.yml, backup.yml
 CLAUDE.md
 ```
 
 Usar a **Supabase CLI** com ambiente local (`supabase start`) para desenvolver. Mudanças de
-banco **só por migration**, nunca editando direto no painel de produção.
+banco **só por migration**, nunca editando direto no painel de produção. Migration nova na `main`
+é aplicada em produção pelo workflow `migrations.yml`, depois de passar nos testes.
 
 ---
 
@@ -299,6 +310,8 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
   território inicial numa posição livre perto da borda em expansão.
 - Workflow `keepalive.yml` pingando a rota de health (que passa a tocar o Supabase).
 - **Aceite:** duas contas diferentes entram no mesmo mundo e cada uma vê seu território.
+- **Status:** código pronto e testado (teste SQL do aceite passando). Falta configurar Supabase/Vercel
+  em produção e fazer o teste com duas contas reais.
 
 ### Fase 2: Economia
 - Recursos lazy, negócios, fila de construção, armazém e capacidade.
