@@ -9,7 +9,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const MIGRATIONS = join(__dirname, "..", "migrations");
 
-const STUB_SUPABASE = /* sql */ `
+export const STUB_SUPABASE = /* sql */ `
   create role anon nologin;
   create role authenticated nologin;
   create role service_role nologin bypassrls;
@@ -31,15 +31,18 @@ const STUB_SUPABASE = /* sql */ `
   alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 `;
 
+/** SQL de todas as migrations, na ordem em que vão para produção. */
+export function sqlDasMigrations(): string[] {
+  return readdirSync(MIGRATIONS)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((arquivo) => readFileSync(join(MIGRATIONS, arquivo), "utf8"));
+}
+
 export async function criarBanco(): Promise<PGlite> {
   const db = new PGlite();
   await db.exec(STUB_SUPABASE);
-  const arquivos = readdirSync(MIGRATIONS)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-  for (const arquivo of arquivos) {
-    await db.exec(readFileSync(join(MIGRATIONS, arquivo), "utf8"));
-  }
+  for (const sql of sqlDasMigrations()) await db.exec(sql);
   return db;
 }
 
