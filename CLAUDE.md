@@ -310,8 +310,9 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
   território inicial numa posição livre perto da borda em expansão.
 - Workflow `keepalive.yml` pingando a rota de health (que passa a tocar o Supabase).
 - **Aceite:** duas contas diferentes entram no mesmo mundo e cada uma vê seu território.
-- **Status:** código pronto e testado (teste SQL do aceite passando). Falta configurar Supabase/Vercel
-  em produção e fazer o teste com duas contas reais.
+- **Status:** ✅ aceita em 27/11/2026: duas contas reais criadas e jogando na Temporada 1 em produção.
+  Migrations aplicadas pelo workflow; Vercel com `NEXT_PUBLIC_SUPABASE_URL` e
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Turnstile ainda não ligado.
 
 ### Fase 2: Economia
 - Recursos lazy, negócios, fila de construção, armazém e capacidade.
