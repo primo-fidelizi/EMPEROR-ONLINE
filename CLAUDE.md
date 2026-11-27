@@ -285,12 +285,13 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
 
 ### Fase 0: Fundação (dia 1–2)
 - Repo no GitHub, Next.js + TS + Tailwind, ESLint e Prettier.
-- Projetos Supabase: `dev` local via CLI e `prod` na nuvem.
+- Projetos Supabase: `dev` local via CLI e `prod` na nuvem (projeto `djmtzvsjfbxuibbaqdjp`, região São Paulo).
 - Deploy na Vercel conectado ao GitHub (preview por PR, produção na `main`).
 - Tokens de cor e fontes da Direção de arte no Tailwind, mais a rota `/app/estilo` com os
   componentes base (botão, cartão, modal, título).
 - CI: lint, typecheck e testes.
 - **Aceite:** uma página "Hello Costa Neon" no ar em `*.vercel.app` e CI verde.
+- **Status:** ✅ site no ar em emperor-online.vercel.app; Supabase prod criado.
 
 ### Fase 1: Contas e mundos
 - Cadastro e login com usuário e senha (seção 5) + Turnstile.
@@ -361,7 +362,7 @@ Cada fase termina com **critério de aceite verificável**. Não avance de fase 
 
 ## 10. Domínio
 
-1. **Início:** usar `costaneon.vercel.app` (ou o nome que estiver livre).
+1. **Início:** **https://emperor-online.vercel.app** (no ar desde a Fase 0).
 2. **Depois:** registrar um domínio (é o único custo, opcional, cerca de R$40–80 por ano para
    um `.com.br`). Apontar o DNS via Cloudflare (grátis), adicionar na Vercel e atualizar:
    - a URL do site e as Redirect URLs no Supabase Auth;
