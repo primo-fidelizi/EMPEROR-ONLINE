@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  maximoRecrutavel,
   falta,
   formatarTempo,
   normalizarEstado,
@@ -38,6 +39,12 @@ describe("previsão da economia (espelha o banco)", () => {
     expect(podePagar(estado.recursos, custo)).toBe(false);
     expect(falta(estado.recursos, custo)).toEqual({ cash: 1 });
     expect(podePagar(estado.recursos, { cash: 500, material: 0, influencia: 0 })).toBe(true);
+  });
+
+  it("calcula o máximo recrutável", () => {
+    const r = { cash: 500, material: 100, influencia: 1000 };
+    expect(maximoRecrutavel(r, { cash: 50, material: 30, influencia: 10 })).toBe(3);
+    expect(maximoRecrutavel(r, { cash: 600, material: 0, influencia: 0 })).toBe(0);
   });
 
   it("formata tempos curtos e longos", () => {

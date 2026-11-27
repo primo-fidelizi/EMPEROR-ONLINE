@@ -13,14 +13,18 @@ import {
   normalizarEstado,
   podePagar,
   preverRecursos,
+  proximoEvento,
   RECURSOS,
   type EstadoTerritorio,
   type Negocio,
   type Recursos,
+  type Tropa,
 } from "@/lib/jogo/economia";
+import { SecaoCrew } from "./SecaoCrew";
+import { AlertaChegando, SecaoMovimentos } from "./SecaoMovimentos";
 import { criarClienteNavegador } from "@/lib/supabase/client";
 
-export function PainelEconomia({ inicial }: { inicial: EstadoTerritorio }) {
+export function PainelEconomia({ inicial, slug }: { inicial: EstadoTerritorio; slug: string }) {
   const [estado, setEstado] = useState(inicial);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
@@ -39,7 +43,7 @@ export function PainelEconomia({ inicial }: { inicial: EstadoTerritorio }) {
 
   const chamar = useCallback(
     async (
-      fn: "estado_territorio" | "construir" | "subir_tudo",
+      fn: "estado_territorio" | "construir" | "subir_tudo" | "recrutar",
       extra: Record<string, unknown> = {},
     ) => {
       const { data, error } = await criarClienteNavegador().rpc(fn, {
@@ -55,8 +59,8 @@ export function PainelEconomia({ inicial }: { inicial: EstadoTerritorio }) {
     [estado.territorio_id],
   );
 
-  // Quando uma obra termina, pede a foto nova ao servidor (níveis e taxas mudam).
-  const proximaConclusao = estado.fila[0] ? Date.parse(estado.fila[0].termina_em) : null;
+  // Quando algo termina ou chega (obra, recrutamento, crew), pede a foto nova ao servidor.
+  const proximaConclusao = proximoEvento(estado);
   useEffect(() => {
     if (proximaConclusao === null || agoraServidor < proximaConclusao + 500 || buscando.current)
       return;
@@ -104,8 +108,16 @@ export function PainelEconomia({ inicial }: { inicial: EstadoTerritorio }) {
       () => `${n.nome} nível ${n.proximo?.nivel} entrou na fila.`,
     );
 
+  const recrutar = (t: Tropa, quantidade: number) =>
+    acao(
+      `recrutar-${t.tipo}`,
+      () => chamar("recrutar", { p_tipo: t.tipo, p_quantidade: quantidade }),
+      () => `${quantidade}× ${t.nome} entrando na fila de recrutamento.`,
+    );
+
   return (
     <div className="space-y-6">
+      <AlertaChegando estado={estado} agora={agoraServidor} />
       <BarraRecursos recursos={recursos} estado={estado} />
 
       <div className="flex flex-wrap items-center gap-4">
@@ -146,6 +158,21 @@ export function PainelEconomia({ inicial }: { inicial: EstadoTerritorio }) {
         </section>
 
         <Fila estado={estado} agora={agoraServidor} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
+        <div className="lg:order-1">
+          <SecaoCrew
+            estado={estado}
+            recursos={recursos}
+            agora={agoraServidor}
+            ocupado={ocupado}
+            aoRecrutar={recrutar}
+          />
+        </div>
+        <div className="order-first lg:order-2">
+          <SecaoMovimentos estado={estado} agora={agoraServidor} slug={slug} />
+        </div>
       </div>
     </div>
   );
@@ -273,7 +300,7 @@ function Fila({ estado, agora }: { estado: EstadoTerritorio; agora: number }) {
                   <span className="font-extrabold">
                     {nome(o.tipo)} → {o.nivel_alvo}
                   </span>
-                  <span className="tabular-nums">
+                  <span className="shrink-0 whitespace-nowrap tabular-nums">
                     {restante > 0 ? formatarTempo(restante) : "pronto!"}
                   </span>
                 </div>

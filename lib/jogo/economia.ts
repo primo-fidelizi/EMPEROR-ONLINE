@@ -33,8 +33,54 @@ export type Obra = {
   termina_em: string;
 };
 
+export type Crew = Record<string, number>;
+
+export type Tropa = {
+  tipo: string;
+  ordem: number;
+  nome: string;
+  descricao: string;
+  custo: Recursos;
+  tempo_s: number;
+  ataque: number;
+  defesa: number;
+  carga: number;
+  min_por_campo: number;
+  garagem: number;
+  liberado: boolean;
+};
+
+export type Ficha = { id: string; nome: string; x: number; y: number; dono: string | null };
+
+export type Movimento = {
+  id: number;
+  tipo: "ataque" | "espionagem" | "retorno";
+  unidades: Crew;
+  saque: Recursos;
+  sai_em: string;
+  chega_em: string;
+  alvo: Ficha;
+};
+
+export type Lote = {
+  id: number;
+  tipo: string;
+  quantidade: number;
+  inicia_em: string;
+  termina_em: string;
+};
+
 export type EstadoTerritorio = {
   territorio_id: string;
+  world_id: string;
+  posicao: { x: number; y: number };
+  unidades: Crew;
+  recrutamento: Lote[];
+  recrutamento_max: number;
+  tropas: Tropa[];
+  movimentos: Movimento[];
+  chegando: Array<{ chega_em: string; origem: Ficha }>;
+  relatorios_nao_lidos: number;
   agora: string;
   recursos: Recursos;
   taxas_h: Recursos;
@@ -62,7 +108,34 @@ export function normalizarEstado(bruto: unknown): EstadoTerritorio {
       ...n,
       proximo: n.proximo ? { ...n.proximo, custo: num(n.proximo.custo) } : null,
     })),
+    unidades: e.unidades ?? {},
+    recrutamento: e.recrutamento ?? [],
+    tropas: (e.tropas ?? []).map((t) => ({ ...t, custo: num(t.custo) })),
+    movimentos: (e.movimentos ?? []).map((m) => ({ ...m, saque: num(m.saque) })),
+    chegando: e.chegando ?? [],
+    relatorios_nao_lidos: Number(e.relatorios_nao_lidos ?? 0),
   };
+}
+
+/** Próximo instante em que algo muda no servidor (obra, recrutamento, chegada). */
+export function proximoEvento(e: EstadoTerritorio): number | null {
+  const tempos = [
+    ...e.fila.map((o) => o.termina_em),
+    ...e.recrutamento.map((r) => r.termina_em),
+    ...e.movimentos.map((m) => m.chega_em),
+    ...e.chegando.map((c) => c.chega_em),
+  ].map((t) => Date.parse(t));
+  return tempos.length ? Math.min(...tempos) : null;
+}
+
+/** Quantas unidades dá para recrutar com os recursos atuais. */
+export function maximoRecrutavel(recursos: Recursos, custo: Recursos): number {
+  return Math.max(
+    0,
+    Math.min(
+      ...RECURSOS.map((k) => (custo[k] > 0 ? Math.floor(recursos[k] / custo[k]) : Infinity)),
+    ),
+  );
 }
 
 /**
@@ -109,6 +182,15 @@ export function formatarTempo(segundos: number): string {
 }
 
 export const ERROS_ECONOMIA: Record<string, string> = {
+  crew_vazia: "Escolha pelo menos uma unidade.",
+  crew_invalida: "Quantidade de crew inválida.",
+  crew_insuficiente: "Você não tem essa crew toda em casa.",
+  alvo_proprio: "Esse território é seu.",
+  alvo_protegido: "Esse jogador ainda está sob proteção de iniciante.",
+  alvo_inexistente: "Esse território não existe mais.",
+  so_olheiros: "Para espionar, mande só olheiros.",
+  quantidade_invalida: "Quantidade inválida.",
+  unidade_inexistente: "Essa unidade não existe.",
   recursos_insuficientes: "Faltam recursos para essa obra.",
   fila_cheia: "A fila de obras está cheia. Espere uma terminar.",
   nivel_maximo: "Esse negócio já está no nível máximo.",

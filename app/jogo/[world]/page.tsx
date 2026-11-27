@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BarraTopo } from "@/components/jogo/BarraTopo";
 import { MiniMapa } from "@/components/jogo/MiniMapa";
+import { NavJogo } from "@/components/jogo/NavJogo";
 import { PainelEconomia } from "@/components/jogo/PainelEconomia";
 import { Cartao } from "@/components/ui/Cartao";
 import { Titulo } from "@/components/ui/Titulo";
@@ -80,6 +81,7 @@ export default async function Jogo({ params }: { params: Promise<{ world: string
     <>
       <BarraTopo username={usuario.username} />
       <main className="mx-auto max-w-5xl space-y-10 px-5 pb-12">
+        <NavJogo slug={slug} ativa="territorio" naoLidos={estado.relatorios_nao_lidos} />
         <div className="space-y-2">
           <Link href="/mundos" className="font-bold underline">
             ← {mundo.nome}
@@ -89,7 +91,7 @@ export default async function Jogo({ params }: { params: Promise<{ world: string
           </Titulo>
         </div>
 
-        <PainelEconomia inicial={estado} />
+        <PainelEconomia inicial={estado} slug={slug} />
 
         <section aria-labelledby="titulo-area" className="space-y-4">
           <h2 id="titulo-area" className="titulo-carimbo text-sol text-4xl">
