@@ -42,6 +42,7 @@ export function sqlDasMigrations(): string[] {
 export async function criarBanco(): Promise<PGlite> {
   const db = new PGlite();
   await db.exec(STUB_SUPABASE);
+  await db.exec(`set app.sem_robos = '1'`); // testes criam os robôs que precisarem
   for (const sql of sqlDasMigrations()) await db.exec(sql);
   return db;
 }

@@ -340,7 +340,7 @@ describe("segurança do combate", () => {
     expect(meu).toMatchObject({ dono: "ana", protegido: true });
     expect(mapa.filter((t) => t.dono_id === null)).toHaveLength(3);
     expect(Object.keys(meu).sort()).toEqual(
-      ["bairro", "dono", "dono_id", "id", "meu", "nome", "pontos", "protegido", "x", "y"].sort(),
+      ["bairro", "bot", "dono", "dono_id", "id", "meu", "nome", "pontos", "protegido", "x", "y"].sort(),
     );
     expect(await erroDe(como(ana, `select * from public.mapa_regiao($1, 0, 0, 200, 200)`, [mundo]))).toBe(
       "regiao_invalida",

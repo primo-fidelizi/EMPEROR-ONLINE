@@ -36,6 +36,7 @@ describe.skipIf(!URL_BASE)("concorrência real (Postgres)", () => {
     u.pathname = `/${banco}`;
     urlTeste = u.toString();
     admin = await conectar(urlTeste);
+    await admin.query(`set app.sem_robos = '1'`);
     await admin.query(STUB_SUPABASE.replace(/create role [a-z_]+ nologin( bypassrls)?;/g, ""));
     for (const sql of sqlDasMigrations()) await admin.query(sql);
   }, 60_000);
