@@ -70,3 +70,19 @@ produção e divide o tempo das obras.
 
 - 3 por jogador novo, a 2–6 campos de distância, com 0–4 Seguranças.
 - Nascem com os mesmos negócios e recursos iniciais de um jogador e **continuam produzindo**: dá para saquear de novo.
+
+## Robôs (`robos`)
+
+Jogadores automáticos que usam **as mesmas RPCs** de um humano (sem trapaça). Um turno a cada 2 min
+(`pg_cron` → `_rodar_bots`). Contas sem senha, marcadas com `profiles.is_bot` e etiqueta "robô" no mapa.
+Nascem **sem** proteção de iniciante.
+
+| Estilo      | Recruta com      | Chance de atacar por turno | Poder mínimo para atacar | Alvos                                |
+| ----------- | ---------------- | -------------------------- | ------------------------ | ------------------------------------ |
+| Construtor  | 20% dos recursos | 25%                        | 150                      | só abandonados                       |
+| Equilibrado | 40%              | 50%                        | 120                      | abandonados e jogadores sem proteção |
+| Saqueador   | 60%              | 80%                        | 100                      | abandonados e jogadores sem proteção |
+
+- Ataca com toda a crew ofensiva e **metade** dos seguranças (a outra metade defende), um ataque por vez.
+- Escolhe por sorteio entre os 3 alvos válidos mais próximos (até 10 campos).
+- Criar mais robôs (SQL Editor do Supabase): `select public.admin_criar_bots('<id do mundo>', 5);`

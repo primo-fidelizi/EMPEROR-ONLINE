@@ -421,7 +421,14 @@ export function MapaCidade({ worldId, tamanho, velocidade, casa, estadoInicial }
                   onClick={() => focar(t)}
                   className="hover:bg-sol focus-visible:bg-sol flex w-full cursor-pointer justify-between gap-2 rounded px-2 py-1 text-left focus-visible:outline-2"
                 >
-                  <span className="font-bold">{t.dono ? `@${t.dono}` : "Abandonado"}</span>
+                  <span className="font-bold">
+                    {t.dono ? `@${t.dono}` : "Abandonado"}
+                    {t.bot && (
+                      <span className="borda-mao bg-concreto ml-2 px-1 text-xs font-extrabold uppercase">
+                        robô
+                      </span>
+                    )}
+                  </span>
                   <span className="tabular-nums">
                     {t.x}|{t.y} · {d.toFixed(1)} campos
                   </span>
@@ -556,6 +563,11 @@ function PainelAlvo({
           : alvo.dono
             ? `De @${alvo.dono} · ${formatarNumero(alvo.pontos ?? 0)} pontos`
             : "Abandonado: ninguém defende muito, e o caixa enche sozinho."}
+        {alvo.bot && (
+          <span className="borda-mao bg-concreto ml-2 px-2 text-sm font-extrabold uppercase">
+            robô
+          </span>
+        )}
         {alvo.protegido && !alvo.meu && (
           <span className="borda-mao bg-sol ml-2 px-2 text-sm font-extrabold">iniciante</span>
         )}

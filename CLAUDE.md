@@ -208,6 +208,9 @@ Supabase
 - `messages(id, world_id, sindicato_id, user_id, texto, criado_em)` (purga)
 - `game_config(chave, valor jsonb)` com custos, tempos e status das unidades
 - `action_log(user_id, acao, criado_em)` para rate limit e auditoria
+- `bots(user_id, perfil[construtor|saqueador|equilibrado], ativo, ultima_acao_em)` — robôs; sem acesso
+  pelo cliente. `profiles.is_bot` marca a conta (sem senha). Turno a cada 2 min usando as MESMAS RPCs
+  dos humanos (`_como` troca o `auth.uid()`). Ver `docs/balanceamento.md`.
 
 Índices obrigatórios: `territories(world_id, x, y)`, `movements(chega_em)`,
 `eventos(executa_em)` e `reports(user_id, criado_em desc)`.

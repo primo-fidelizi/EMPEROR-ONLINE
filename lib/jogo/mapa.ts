@@ -13,6 +13,7 @@ export type TerritorioMapa = {
   pontos: number | null;
   protegido: boolean;
   meu: boolean;
+  bot: boolean;
 };
 
 export type Camera = { x: number; y: number; zoom: number };
