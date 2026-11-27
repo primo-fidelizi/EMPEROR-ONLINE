@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BarraTopo } from "@/components/jogo/BarraTopo";
 import { MiniMapa } from "@/components/jogo/MiniMapa";
+import { PainelEconomia } from "@/components/jogo/PainelEconomia";
 import { Cartao } from "@/components/ui/Cartao";
 import { Titulo } from "@/components/ui/Titulo";
+import { normalizarEstado } from "@/lib/jogo/economia";
 import { usuarioAtual } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Seu território · Costa Neon" };
@@ -52,14 +54,19 @@ export default async function Jogo({ params }: { params: Promise<{ world: string
   const territorio = meus?.[0];
   if (!territorio) redirect("/mundos");
 
-  const { data: vizinhos } = await supabase
-    .from("territories")
-    .select("id, x, y, dono_id")
-    .eq("world_id", mundo.id)
-    .gte("x", territorio.x - RAIO_VISTA)
-    .lte("x", territorio.x + RAIO_VISTA)
-    .gte("y", territorio.y - RAIO_VISTA)
-    .lte("y", territorio.y + RAIO_VISTA);
+  const [{ data: estadoBruto, error: erroEstado }, { data: vizinhos }] = await Promise.all([
+    supabase.rpc("estado_territorio", { p_territorio: territorio.id }),
+    supabase
+      .from("territories")
+      .select("id, x, y, dono_id")
+      .eq("world_id", mundo.id)
+      .gte("x", territorio.x - RAIO_VISTA)
+      .lte("x", territorio.x + RAIO_VISTA)
+      .gte("y", territorio.y - RAIO_VISTA)
+      .lte("y", territorio.y + RAIO_VISTA),
+  ]);
+  if (erroEstado || !estadoBruto) throw new Error(erroEstado?.message ?? "estado_indisponivel");
+  const estado = normalizarEstado(estadoBruto);
 
   const pontos = (vizinhos ?? []).map((v) => ({
     id: v.id,
@@ -72,7 +79,7 @@ export default async function Jogo({ params }: { params: Promise<{ world: string
   return (
     <>
       <BarraTopo username={usuario.username} />
-      <main className="mx-auto max-w-4xl space-y-8 px-5 pb-12">
+      <main className="mx-auto max-w-5xl space-y-10 px-5 pb-12">
         <div className="space-y-2">
           <Link href="/mundos" className="font-bold underline">
             ← {mundo.nome}
@@ -82,41 +89,44 @@ export default async function Jogo({ params }: { params: Promise<{ world: string
           </Titulo>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 md:items-start">
-          <Cartao className="space-y-3">
-            <dl className="grid grid-cols-2 gap-y-2 text-lg">
-              <dt className="font-extrabold">Posição</dt>
-              <dd className="tabular-nums">
-                {territorio.x}|{territorio.y}
-              </dd>
-              <dt className="font-extrabold">Bairro</dt>
-              <dd>{BAIRROS[territorio.bairro] ?? territorio.bairro}</dd>
-              <dt className="font-extrabold">Lealdade</dt>
-              <dd className="tabular-nums">{territorio.lealdade}%</dd>
-              <dt className="font-extrabold">Vizinhos</dt>
-              <dd className="tabular-nums">{outros} por perto</dd>
-            </dl>
-            <p className="borda-mao-2 bg-sol p-3 font-semibold">
-              Em breve: Cash, Material e Influência, e seus primeiros negócios (Garagem, Boate…).
-            </p>
-          </Cartao>
+        <PainelEconomia inicial={estado} />
 
-          <div className="space-y-3">
-            <MiniMapa
-              centro={{ x: territorio.x, y: territorio.y }}
-              raio={RAIO_VISTA}
-              pontos={pontos}
-            />
-            <p className="flex flex-wrap gap-4 font-bold">
-              <span className="flex items-center gap-2">
-                <span className="borda-mao bg-sol inline-block size-4" /> seu
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="borda-mao bg-neon inline-block size-4" /> de outros jogadores
-              </span>
-            </p>
+        <section aria-labelledby="titulo-area" className="space-y-4">
+          <h2 id="titulo-area" className="titulo-carimbo text-sol text-4xl">
+            Sua área
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2 md:items-start">
+            <Cartao>
+              <dl className="grid grid-cols-2 gap-y-2 text-lg">
+                <dt className="font-extrabold">Posição</dt>
+                <dd className="tabular-nums">
+                  {territorio.x}|{territorio.y}
+                </dd>
+                <dt className="font-extrabold">Bairro</dt>
+                <dd>{BAIRROS[territorio.bairro] ?? territorio.bairro}</dd>
+                <dt className="font-extrabold">Lealdade</dt>
+                <dd className="tabular-nums">{territorio.lealdade}%</dd>
+                <dt className="font-extrabold">Vizinhos</dt>
+                <dd className="tabular-nums">{outros} por perto</dd>
+              </dl>
+            </Cartao>
+            <div className="space-y-3">
+              <MiniMapa
+                centro={{ x: territorio.x, y: territorio.y }}
+                raio={RAIO_VISTA}
+                pontos={pontos}
+              />
+              <p className="flex flex-wrap gap-4 font-bold">
+                <span className="flex items-center gap-2">
+                  <span className="borda-mao bg-sol inline-block size-4" /> seu
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="borda-mao bg-neon inline-block size-4" /> de outros jogadores
+                </span>
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
       </main>
     </>
   );
