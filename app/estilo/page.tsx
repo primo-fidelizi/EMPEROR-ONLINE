@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Cartao } from "@/components/ui/Cartao";
+import { MiniMapa } from "@/components/jogo/MiniMapa";
 import { Titulo } from "@/components/ui/Titulo";
 import { DemoInterativa } from "./DemoInterativa";
 
@@ -62,6 +63,22 @@ export default function Estilo() {
             <span className="tabular-nums">tabular-nums: 1.234.567 Cash</span>.
           </p>
         </Cartao>
+      </section>
+
+      <section className="space-y-4">
+        <Titulo nivel={2} className="text-sol">
+          Mapa
+        </Titulo>
+        <MiniMapa
+          centro={{ x: 250, y: 250 }}
+          raio={4}
+          pontos={[
+            { id: "a", x: 250, y: 250, meu: true },
+            { id: "b", x: 252, y: 249, meu: false },
+            { id: "c", x: 247, y: 252, meu: false },
+            { id: "d", x: 251, y: 253, meu: false },
+          ]}
+        />
       </section>
 
       <section className="space-y-4">
